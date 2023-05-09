@@ -1,4 +1,4 @@
-#Tue May 02 11:08:51 AEST 2023
-base.0=/Users/kit305/AndroidStudioProjects/week10_sample_1/build/app/intermediates/dex/debug/mergeDexDebug/classes.dex
+#Tue May 09 12:02:50 AEST 2023
+base.0=/Users/kit305/AndroidStudioProjects/week11_sample/kit305-week11-sample/build/app/intermediates/dex/debug/mergeDexDebug/classes.dex
 renamed.0=classes.dex
 path.0=classes.dex

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:week10_sample_1/counter_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,10 +15,59 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
+        primarySwatch: Colors.deepOrange,
       ),
-      home: const MyHomePage(title: 'KIT305 Home Page'),
+      home: ChangeNotifierProvider<CounterProvider>(
+        create: (_) => CounterProvider(),
+        child: DefaultTabController(
+          length: 3,
+          initialIndex: 2,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text("Week 11"),
+              /*bottom: const TabBar(
+                tabs: [
+                  Tab(icon: Icon(Icons.home)),
+                  Tab(icon: Icon(Icons.timer)),
+                ],
+              ),*/
+            ),
+            body: TabBarView(children: [
+              const MyHomePage(title: 'KIT305 Home Page'),
+              TotalTab(),
+              TimerTab(),
+            ]),
+            bottomNavigationBar: Builder(
+              builder: (context) {
+                return TabBar(
+                  tabs: [
+                    Tab(text: "Counters"),
+                    Tab(text: "Total"),
+                    Tab(text: "Timer"),
+                  ],
+                  labelColor: Theme.of(context).primaryColor,
+                );
+              }
+            )
+          )
+        ),
+      ),
     );
+  }
+}
+
+class TotalTab extends StatelessWidget {
+  const TotalTab({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(child: Consumer<CounterProvider>(
+      builder: (context, counterProvider, _) {
+        return Text("Total is: ${counterProvider.total}");
+      }
+    ));
   }
 }
 
@@ -36,27 +87,14 @@ class _MyHomePageState extends State<MyHomePage>
 {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Center(
+    return Center(
         child: Column(
           children:
-          [
+          const [
             //Hard-coded counter widgets (uncomment *** to use the list of labels below)
-            CounterWidget(buttonText: "Hi", onCounterChanged: (value) {
-              print("counter 1 was incremented");
-              setState(() { counters[0]=value; });
-            },),
-            CounterWidget(buttonText: "Bye", onCounterChanged: (value) {
-              print("counter 2 was incremented");
-              setState(() { counters[1]=value; });
-            }),
-            CounterWidget(buttonText: "huzzah", onCounterChanged: (value) {
-              print("counter 3 was incremented");
-              setState(() { counters[2]=value; });
-            }),
+            CounterWidget(buttonText: "Hi", counterIndex: 0),
+            CounterWidget(buttonText: "Bye", counterIndex: 1),
+            CounterWidget(buttonText: "huzzah", counterIndex: 2),
 
             /*
 
@@ -72,16 +110,8 @@ class _MyHomePageState extends State<MyHomePage>
             */
           ],
         ),
-      ),
     );
   }
-
-  //store the state of the counters here, since we need to calculate the total
-  //(note this could be done better, but we ran out of time, DM me for info)
-  List<int> counters = [0, 0, 0, 0];
-
-  //using a higher-order function to calculate the total
-  int get total => counters.reduce((value, element) => value + element);
 
   //defining the labels as a list of strings (only used if you comment out *** above)
   List<String> counterLabels = [
@@ -90,11 +120,10 @@ class _MyHomePageState extends State<MyHomePage>
 }
 
 class CounterWidget extends StatefulWidget {
-  const CounterWidget({Key? key, required this.buttonText, required this.onCounterChanged}) : super(key: key);
+  const CounterWidget({Key? key, required this.buttonText, required this.counterIndex}) : super(key: key);
 
   final String buttonText;
-
-  final Function(int) onCounterChanged;
+  final int counterIndex;
 
   @override
   State<CounterWidget> createState() => _CounterWidgetState();
@@ -104,18 +133,32 @@ class _CounterWidgetState extends State<CounterWidget>
 {
   int counter = 0;
 
+  @override
+  void initState()
+  {
+    super.initState();
+
+    var counterProvider = Provider.of<CounterProvider>(context, listen: false);
+    counter = counterProvider.counters[widget.counterIndex];
+  }
+
   void _incrementCounter() {
     setState(() {
       counter++;
-      widget.onCounterChanged(counter);
     });
+
+    var counterProvider = Provider.of<CounterProvider>(context, listen: false);
+    counterProvider.setCounter(widget.counterIndex, counter);
+
   }
 
   void _resetCounter() {
     setState(() {
       counter = 0;
-      widget.onCounterChanged(counter);
     });
+
+    var counterProvider = Provider.of<CounterProvider>(context, listen: false);
+    counterProvider.setCounter(widget.counterIndex, 0);
   }
 
   @override
@@ -141,6 +184,57 @@ class _CounterWidgetState extends State<CounterWidget>
           child: Text(widget.buttonText),//const Icon(Icons.add),
         ),
         OutlinedButton(onPressed: _resetCounter, child: const Text("Reset"))
+      ],
+    );
+  }
+}
+
+class TimerTab extends StatefulWidget {
+  const TimerTab({Key? key}) : super(key: key);
+
+  @override
+  State<TimerTab> createState() => _TimerTabState();
+}
+
+class _TimerTabState extends State<TimerTab>
+{
+  int timerValue = 0;
+  bool timerRunning = false;
+
+  Future _timer() async
+  {
+    //if (timerRunning) return;
+
+    setState(() => timerRunning = true);
+
+    while(timerRunning)
+    {
+      await Future.delayed(const Duration(seconds: 1));
+      setState(() => timerValue++);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text("timer: $timerValue"),
+        Row(
+          children: [
+            ElevatedButton(
+              child: const Text("Start"),
+              onPressed: timerRunning ? null : _timer,
+            ),
+            ElevatedButton(
+              child: const Text("Stop"),
+              onPressed: timerRunning ? () => setState(() => timerRunning = false) : null,
+            ),
+            ElevatedButton(
+              child: const Text("Reset"),
+              onPressed: () => setState(() => timerValue = 0),
+            )
+          ],
+        )
       ],
     );
   }
